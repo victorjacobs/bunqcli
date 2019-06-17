@@ -83,8 +83,7 @@ fun main(args: Array<String>) {
         nextId = paymentsResult.pagination.olderId
         page++
 
-        if (page % 10 == 0) println(" ${page}")
-
+        if (page % 10 == 0) println(" $page")
     } while (nextId != null)
 
     println()
