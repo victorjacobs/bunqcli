@@ -10,5 +10,4 @@ object Configuration {
 
     private fun getFromEnvOrThrow(varName: String) =
         getFromEnv(varName) ?: throw IllegalStateException("$varName not set")
-
 }
