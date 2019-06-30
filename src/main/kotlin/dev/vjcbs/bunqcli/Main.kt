@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter
 
 const val contextFile = "bunq.conf"
 
-val bunqDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+val bunqDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")!!
 
 data class Summary(
     val incoming: Double = 0.0,
@@ -25,7 +25,7 @@ data class Summary(
     )
 }
 
-fun main(args: Array<String>) {
+fun main() {
     // TODO encrypt file
 
     val apiContext = if (File(contextFile).exists()) {
@@ -61,15 +61,20 @@ fun main(args: Array<String>) {
             )
         } ?: mapOf()))
 
+        paymentsProcessed += paymentsResult.value.count()
+
         paymentsResult.value.filter {
-            paymentsProcessed += 1
             it.type != "SAVINGS"
         }.map {
             val monthKey = LocalDate.parse(it.created.split(" ")[0], bunqDateTimeFormatter)
                 .format(DateTimeFormatter.ofPattern("yyyy-MM"))
             val amount = it.amount.value.toDouble()
 
-            monthKey to if (amount < 0) Summary(outgoing = amount) else Summary(incoming = amount)
+            monthKey to if (it.subType == "REVERSAL" || amount < 0) {
+                Summary(outgoing = amount)
+            } else {
+                Summary(incoming = amount)
+            }
         }.groupBy({ it.first }, { it.second }).map {
             it.key to it.value.fold(Summary()) { acc, curr ->
                 acc + curr
@@ -86,6 +91,7 @@ fun main(args: Array<String>) {
         if (page % 10 == 0) println(" $page")
     } while (nextId != null)
 
+    println()
     println()
 
     summariesPerMonth.forEach {
