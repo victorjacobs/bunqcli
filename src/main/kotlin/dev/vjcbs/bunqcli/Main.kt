@@ -1,106 +1,50 @@
 package dev.vjcbs.bunqcli
 
-import com.bunq.sdk.context.ApiContext
-import com.bunq.sdk.context.ApiEnvironmentType
-import com.bunq.sdk.context.BunqContext
-import com.bunq.sdk.model.generated.endpoint.Payment
-import java.io.File
+import com.bunq.sdk.model.generated.endpoint.MonetaryAccountBank
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-const val contextFile = "bunq.conf"
-
-val bunqDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")!!
-
-data class Summary(
-    val incoming: Double = 0.0,
-    val outgoing: Double = 0.0
-) {
-    val delta: Double
-        get() = this.incoming + this.outgoing
-
-    operator fun plus(other: Summary) = Summary(
-        incoming = this.incoming + other.incoming,
-        outgoing = this.outgoing + other.outgoing
-    )
-}
+val bunqClient = BunqClient()
 
 fun main() {
-    // TODO encrypt file
+    if (Configuration.bunqAccountId == null) {
+        println("BUNQ_ACCOUNT_ID not set, please choose one of the following:")
 
-    val apiContext = if (File(contextFile).exists()) {
-        ApiContext.restore(contextFile)
-    } else {
-        ApiContext.create(
-            ApiEnvironmentType.PRODUCTION,
-            Configuration.bunqApiKey,
-            "dev.vjcbs.bunqcli"
-        )
-    }
-
-    apiContext.save(contextFile)
-
-    BunqContext.loadApiContext(apiContext)
-
-    val summariesPerMonth: MutableMap<String, Summary> = mutableMapOf()
-
-    var page = 0
-    var paymentsProcessed = 0
-    var nextId: Int? = null
-
-    println()
-
-    do {
-        print(".")
-
-        val paymentsResult = Payment.list(Configuration.bunqAccountId, mapOf(
-            "count" to "200"
-        ) + (nextId?.let {
-            mapOf(
-                "older_id" to it.toString()
-            )
-        } ?: mapOf()))
-
-        paymentsProcessed += paymentsResult.value.count()
-
-        paymentsResult.value.filter {
-            it.type != "SAVINGS"
-        }.map {
-            val monthKey = LocalDate.parse(it.created.split(" ")[0], bunqDateTimeFormatter)
-                .format(DateTimeFormatter.ofPattern("yyyy-MM"))
-            val amount = it.amount.value.toDouble()
-
-            monthKey to if (it.subType == "REVERSAL" || amount < 0) {
-                Summary(outgoing = amount)
-            } else {
-                Summary(incoming = amount)
-            }
-        }.groupBy({ it.first }, { it.second }).map {
-            it.key to it.value.fold(Summary()) { acc, curr ->
-                acc + curr
-            }
-        }.forEach {
-            summariesPerMonth.merge(it.first, it.second) { a, b ->
-                a + b
-            }
+        MonetaryAccountBank.list().value.filter { it.status == "ACTIVE" }.forEach {
+            println("${it.id}\t${it.description}")
         }
 
-        nextId = paymentsResult.pagination.olderId
-        page++
+        return
+    }
 
-        if (page % 10 == 0) println(" $page")
-    } while (nextId != null)
+    val payments = bunqClient.getMostRecentPayments(Configuration.bunqAccountId)
 
-    println()
+    val summariesPerMonth = payments.filter {
+        it.type != "SAVINGS"
+    }.map {
+        val monthKey = it.getCreatedDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM"))
+        val amount = it.getAmountDouble()
+
+        monthKey to if (it.subType == "REVERSAL" || amount < 0) {
+            Summary(outgoing = amount)
+        } else {
+            Summary(incoming = amount)
+        }
+    }.groupBy({ it.first }, { it.second }).map {
+        it.key to it.value.fold(Summary()) { acc, curr ->
+            acc + curr
+        }
+    }
+
     println()
 
     summariesPerMonth.forEach {
-        println("[${it.key}]")
-        println("\tIncoming:\t${it.value.incoming.roundTwoDigits()}")
-        println("\tOutgoing:\t${it.value.outgoing.roundTwoDigits()}")
-        println("\tDelta:\t\t${it.value.delta.roundTwoDigits()}")
+        println("[${it.first}]")
+        println("\tIncoming:\t${it.second.incoming.roundTwoDigits()}")
+        println("\tOutgoing:\t${it.second.outgoing.roundTwoDigits()}")
+        println("\tDelta:\t\t${it.second.delta.roundTwoDigits()}")
         println()
     }
 
-    println("Transactions processed: $paymentsProcessed")
+    println("Transactions processed: ${payments.count()}")
 }

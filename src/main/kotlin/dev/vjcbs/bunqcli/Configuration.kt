@@ -2,7 +2,7 @@ package dev.vjcbs.bunqcli
 
 object Configuration {
 
-    val bunqAccountId = getFromEnvOrThrow("BUNQ_ACCOUNT_ID").toInt()
+    val bunqAccountId = getFromEnv("BUNQ_ACCOUNT_ID")?.toInt()
 
     val bunqApiKey = getFromEnvOrThrow("BUNQ_API_KEY")
 
