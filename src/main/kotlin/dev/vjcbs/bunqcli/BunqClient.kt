@@ -60,10 +60,7 @@ class BunqClient {
     }
 }
 
-fun Payment.getCreatedDateTime(): LocalDate {
-    val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")!!
+fun Payment.getCreatedDateTime() =
+    LocalDate.parse(created.split(" ")[0], DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-    return LocalDate.parse(created.split(" ")[0], dateTimeFormatter)
-}
-
-fun Payment.getAmountDouble(): Double = amount.value.toDouble()
+fun Payment.getAmountDouble() = amount.value.toDouble()
