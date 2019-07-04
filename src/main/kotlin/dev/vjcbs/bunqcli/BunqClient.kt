@@ -4,32 +4,32 @@ import com.bunq.sdk.context.ApiContext
 import com.bunq.sdk.context.ApiEnvironmentType
 import com.bunq.sdk.context.BunqContext
 import com.bunq.sdk.model.generated.endpoint.Payment
-import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 class BunqClient {
 
-    private val contextFile = "bunq.conf"
+    private val password = "test"
 
     init {
         login()
     }
 
     fun login() {
-        // TODO encrypt file
-
-        val apiContext = if (File(contextFile).exists()) {
-            ApiContext.restore(contextFile)
-        } else {
-            ApiContext.create(
+        val apiContext = Configuration.fromFileWithPassword(password)?.let {
+            ApiContext.fromJson(it.decryptedApiContext)
+        } ?: run {
+            val context = ApiContext.create(
                 ApiEnvironmentType.PRODUCTION,
-                Configuration.bunqApiKey,
+                EnvironmentVariables.bunqApiKey,
                 "dev.vjcbs.bunqcli"
             )
-        }
 
-        apiContext.save(contextFile)
+            val conf = Configuration(decryptedApiContext = context.toJson())
+            conf.writeToFileWithPassword(password)
+
+            context
+        }
 
         BunqContext.loadApiContext(apiContext)
     }
@@ -61,6 +61,6 @@ class BunqClient {
 }
 
 fun Payment.getCreatedDateTime() =
-    LocalDate.parse(created.split(" ")[0], DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+    LocalDate.parse(created.split(" ")[0], DateTimeFormatter.ofPattern("yyyy-MM-dd"))!!
 
 fun Payment.getAmountDouble() = amount.value.toDouble()

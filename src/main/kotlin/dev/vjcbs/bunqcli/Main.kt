@@ -7,7 +7,7 @@ import java.time.format.DateTimeFormatter
 val bunqClient = BunqClient()
 
 fun main() {
-    if (Configuration.bunqAccountId == null) {
+    if (EnvironmentVariables.bunqAccountId == null) {
         println("BUNQ_ACCOUNT_ID not set, please choose one of the following:")
 
         MonetaryAccountBank.list().value.filter { it.status == "ACTIVE" }.forEach {
@@ -17,7 +17,10 @@ fun main() {
         return
     }
 
-    val payments = bunqClient.getMostRecentPayments(Configuration.bunqAccountId)
+//    val payments = bunqClient.getMostRecentPayments(EnvironmentVariables.bunqAccountId)
+    val payments = bunqClient.getMostRecentPaymentsWhile(EnvironmentVariables.bunqAccountId) {
+        it.getCreatedDateTime().month == LocalDate.now().month
+    }
 
     val summariesPerMonth = payments.filter {
         it.type != "SAVINGS"

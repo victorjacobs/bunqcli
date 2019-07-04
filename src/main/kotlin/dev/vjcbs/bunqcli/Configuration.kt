@@ -1,13 +1,60 @@
 package dev.vjcbs.bunqcli
 
-object Configuration {
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 
-    val bunqAccountId = getFromEnv("BUNQ_ACCOUNT_ID")?.toInt()
+data class Configuration(
+    var bunqApiContext: AesEncryptionResult? = null,
+    @JsonIgnore
+    var decryptedApiContext: String? = null
+) {
 
-    val bunqApiKey = getFromEnvOrThrow("BUNQ_API_KEY")
+    companion object {
 
-    private fun getFromEnv(varName: String): String? = System.getenv(varName)
+        private val log = logger()
 
-    private fun getFromEnvOrThrow(varName: String) =
-        getFromEnv(varName) ?: throw IllegalStateException("$varName not set")
+        private val configurationPath = "conf.json"
+
+        private val objectMapper = ObjectMapper().apply {
+            registerModule(KotlinModule())
+        }
+
+        fun fromFileWithPassword(password: String?): Configuration? {
+            val configurationFile = File(configurationPath)
+
+            if (!configurationFile.exists()) {
+                log.info("Configuration file doesn't exist")
+                return null
+            }
+
+            log.info("Reading configuration from file")
+
+            val configuration = try {
+                objectMapper.readValue(configurationFile, Configuration::class.java)
+            } catch (e: Exception) {
+                log.error("Deserializing configuration failed", e)
+                return null
+            }
+
+            if (password != null) {
+                configuration.decryptedApiContext = configuration.bunqApiContext?.decrypt(password)
+            }
+
+            return configuration
+        }
+    }
+
+    fun writeToFileWithPassword(password: String) {
+        log.info("Writing configuration to file")
+
+        bunqApiContext = decryptedApiContext?.encrypt(password)
+
+        val json = objectMapper.writeValueAsString(this)
+
+        Files.write(Paths.get(configurationPath), json.toByteArray())
+    }
 }

@@ -3,6 +3,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val logbackVersion = "1.2.3"
 val bunqVersion = "1.10.16"
 val jaxbVersion = "2.2.11"
+val commonsCodecVersion = "1.12"
+val jacksonVersion = "2.9.9"
 
 plugins {
     application
@@ -29,6 +31,9 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("com.github.bunq:sdk_java:$bunqVersion")
     implementation("javax.xml.bind:jaxb-api:$jaxbVersion")
+    implementation("commons-codec:commons-codec:$commonsCodecVersion")
+    implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
 }
 
 tasks.withType<KotlinCompile> {
