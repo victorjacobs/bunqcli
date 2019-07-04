@@ -1,53 +1,63 @@
 package dev.vjcbs.bunqcli
 
 import com.bunq.sdk.model.generated.endpoint.MonetaryAccountBank
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.output.TermUi
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
-val bunqClient = BunqClient()
+private const val password = "test"
 
-fun main() {
-    if (EnvironmentVariables.bunqAccountId == null) {
-        println("BUNQ_ACCOUNT_ID not set, please choose one of the following:")
+class BunqCli : CliktCommand() {
 
-        MonetaryAccountBank.list().value.filter { it.status == "ACTIVE" }.forEach {
-            println("${it.id}\t${it.description}")
-        }
+    private val configuration = Configuration.fromFileWithPassword(password)
 
-        return
-    }
+    private val bunqClient = BunqClient()
 
-//    val payments = bunqClient.getMostRecentPayments(EnvironmentVariables.bunqAccountId)
-    val payments = bunqClient.getMostRecentPaymentsWhile(EnvironmentVariables.bunqAccountId) {
-        it.getCreatedDateTime().month == LocalDate.now().month
-    }
+    override fun run() {
+        if (configuration.encryptedApiContext == null) {
+            val bunqApiKey = TermUi.prompt(
+                text = "Bunq API key"
+            ) ?: return
 
-    val summariesPerMonth = payments.filter {
-        it.type != "SAVINGS"
-    }.map {
-        val monthKey = it.getCreatedDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM"))
-        val amount = it.getAmountDouble()
-
-        monthKey to if (it.subType == "REVERSAL" || amount < 0) {
-            Summary(outgoing = amount)
+            configuration.apiContext = bunqClient.loginWithApiKey(bunqApiKey)
+            configuration.save()
         } else {
-            Summary(incoming = amount)
+            configuration.apiContext?.also {
+                bunqClient.loginWithContext(it)
+            }
         }
-    }.groupBy({ it.first }, { it.second }).map {
-        it.key to it.value.fold(Summary()) { acc, curr ->
-            acc + curr
+
+        if (configuration.bunqAccountId == null) {
+            println("Bunq account id not set, please choose one of the following:")
+
+            MonetaryAccountBank.list().value.filter { it.status == "ACTIVE" }.forEach {
+                println("${it.id}\t${it.description}")
+            }
+
+            println()
+
+            val bunqAccountId = TermUi.prompt(
+                text = "Account id"
+            ) ?: return
+
+            configuration.bunqAccountId = bunqAccountId.toInt()
+            configuration.save()
         }
-    }
 
-    println()
+        val summariesPerMonth = bunqClient.summariesPerMonthWhile(configuration.bunqAccountId!!) {
+            it.getCreatedDateTime().month == LocalDate.now().month
+        }
 
-    summariesPerMonth.forEach {
-        println("[${it.first}]")
-        println("\tIncoming:\t${it.second.incoming.roundTwoDigits()}")
-        println("\tOutgoing:\t${it.second.outgoing.roundTwoDigits()}")
-        println("\tDelta:\t\t${it.second.delta.roundTwoDigits()}")
         println()
-    }
 
-    println("Transactions processed: ${payments.count()}")
+        summariesPerMonth.forEach {
+            println("[${it.first}]")
+            println("\tIncoming:\t${it.second.incoming.roundTwoDigits()}")
+            println("\tOutgoing:\t${it.second.outgoing.roundTwoDigits()}")
+            println("\tDelta:\t\t${it.second.delta.roundTwoDigits()}")
+            println()
+        }
+    }
 }
+
+fun main(args: Array<String>) = BunqCli().main(args)

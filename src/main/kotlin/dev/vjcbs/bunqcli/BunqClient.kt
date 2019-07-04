@@ -9,34 +9,22 @@ import java.time.format.DateTimeFormatter
 
 class BunqClient {
 
-    private val password = "test"
+    fun loginWithContext(context: String) =
+        BunqContext.loadApiContext(ApiContext.fromJson(context))
 
-    init {
-        login()
+    fun loginWithApiKey(apiKey: String): String {
+        val context = ApiContext.create(
+            ApiEnvironmentType.PRODUCTION,
+            apiKey,
+            "dev.vjcbs.bunqcli"
+        )
+
+        BunqContext.loadApiContext(context)
+
+        return context.toJson()
     }
 
-    fun login() {
-        val apiContext = Configuration.fromFileWithPassword(password)?.let {
-            ApiContext.fromJson(it.decryptedApiContext)
-        } ?: run {
-            val context = ApiContext.create(
-                ApiEnvironmentType.PRODUCTION,
-                EnvironmentVariables.bunqApiKey,
-                "dev.vjcbs.bunqcli"
-            )
-
-            val conf = Configuration(decryptedApiContext = context.toJson())
-            conf.writeToFileWithPassword(password)
-
-            context
-        }
-
-        BunqContext.loadApiContext(apiContext)
-    }
-
-    fun getMostRecentPayments(bunqAccountId: Int) = getMostRecentPaymentsWhile(bunqAccountId) { true }
-
-    fun getMostRecentPaymentsWhile(bunqAccountId: Int, condition: (Payment) -> Boolean): List<Payment> {
+    fun mostRecentPaymentsWhile(bunqAccountId: Int, condition: (Payment) -> Boolean): List<Payment> {
         val result: MutableList<Payment> = mutableListOf()
 
         var nextId: Int? = null
@@ -58,6 +46,24 @@ class BunqClient {
 
         return result
     }
+
+    fun summariesPerMonthWhile(bunqAccountId: Int, condition: (Payment) -> Boolean) =
+        mostRecentPaymentsWhile(bunqAccountId, condition).filter {
+            it.type != "SAVINGS"
+        }.map {
+            val monthKey = it.getCreatedDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM"))
+            val amount = it.getAmountDouble()
+
+            monthKey to if (it.subType == "REVERSAL" || amount < 0) {
+                Summary(outgoing = amount)
+            } else {
+                Summary(incoming = amount)
+            }
+        }.groupBy({ it.first }, { it.second }).map {
+            it.key to it.value.fold(Summary()) { acc, curr ->
+                acc + curr
+            }
+        }
 }
 
 fun Payment.getCreatedDateTime() =

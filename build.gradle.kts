@@ -5,6 +5,7 @@ val bunqVersion = "1.10.16"
 val jaxbVersion = "2.2.11"
 val commonsCodecVersion = "1.12"
 val jacksonVersion = "2.9.9"
+val cliktVersion = "2.0.0"
 
 plugins {
     application
@@ -34,6 +35,7 @@ dependencies {
     implementation("commons-codec:commons-codec:$commonsCodecVersion")
     implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
+    implementation("com.github.ajalt:clikt:$cliktVersion")
 }
 
 tasks.withType<KotlinCompile> {

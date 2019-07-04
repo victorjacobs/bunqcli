@@ -8,50 +8,58 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 data class Configuration(
-    var bunqApiContext: AesEncryptionResult? = null,
     @JsonIgnore
-    var decryptedApiContext: String? = null
+    private var password: String? = null,
+
+    var encryptedApiContext: AesEncryptionResult? = null,
+    @JsonIgnore
+    var apiContext: String? = null,
+    var bunqAccountId: Int? = null
 ) {
 
     companion object {
 
-        private val log = logger()
+        private const val configurationPath = "conf.json"
 
-        private val configurationPath = "conf.json"
+        private val log = logger()
 
         private val objectMapper = ObjectMapper().apply {
             registerModule(KotlinModule())
         }
 
-        fun fromFileWithPassword(password: String?): Configuration? {
+        fun fromFileWithPassword(password: String?): Configuration {
             val configurationFile = File(configurationPath)
 
             if (!configurationFile.exists()) {
                 log.info("Configuration file doesn't exist")
-                return null
+                return Configuration()
             }
 
             log.info("Reading configuration from file")
 
             val configuration = try {
-                objectMapper.readValue(configurationFile, Configuration::class.java)
+                objectMapper.readValue(configurationFile, Configuration::class.java).apply {
+                    this.password = password
+                }
             } catch (e: Exception) {
                 log.error("Deserializing configuration failed", e)
-                return null
+                return Configuration()
             }
 
             if (password != null) {
-                configuration.decryptedApiContext = configuration.bunqApiContext?.decrypt(password)
+                configuration.apiContext = configuration.encryptedApiContext?.decrypt(password)
             }
 
             return configuration
         }
     }
 
-    fun writeToFileWithPassword(password: String) {
+    fun save() {
         log.info("Writing configuration to file")
 
-        bunqApiContext = decryptedApiContext?.encrypt(password)
+        password?.also {
+            encryptedApiContext = apiContext?.encrypt(it)
+        }
 
         val json = objectMapper.writeValueAsString(this)
 

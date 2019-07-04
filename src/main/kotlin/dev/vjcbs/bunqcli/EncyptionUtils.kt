@@ -15,7 +15,7 @@ private const val ivLength = 16
 private const val gcmTagLength = 128
 
 private const val pbkdf2Algorithm = "PBKDF2WithHmacSHA512"
-private const val pbkdf2Iterations = 5000
+private const val pbkdf2Iterations = 500_000
 private const val pbkdf2Strength = 256
 private const val saltLength = 16
 
