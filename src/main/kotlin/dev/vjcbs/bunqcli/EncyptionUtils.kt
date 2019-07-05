@@ -15,7 +15,7 @@ private const val ivLength = 16
 private const val gcmTagLength = 128
 
 private const val pbkdf2Algorithm = "PBKDF2WithHmacSHA512"
-private const val pbkdf2Iterations = 500_000
+private const val pbkdf2Iterations = 100_000
 private const val pbkdf2Strength = 256
 private const val saltLength = 16
 
@@ -95,7 +95,7 @@ data class AesEncryptionResult(
 
             return String(decryptedData)
         } catch (e: GeneralSecurityException) {
-            log.error("Decryption failed", e)
+            log.error("Decryption failed: ${e.message}")
             return null
         }
     }

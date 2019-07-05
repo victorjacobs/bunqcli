@@ -3,9 +3,9 @@ package dev.vjcbs.bunqcli
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
+import kotlin.system.measureTimeMillis
 
 data class Configuration(
     @JsonIgnore
@@ -19,7 +19,8 @@ data class Configuration(
 
     companion object {
 
-        private const val configurationPath = "conf.json"
+        private val configurationPath =
+            Paths.get(System.getProperty("user.home"), ".bunqclirc")
 
         private val log = logger()
 
@@ -28,26 +29,30 @@ data class Configuration(
         }
 
         fun fromFileWithPassword(password: String?): Configuration {
-            val configurationFile = File(configurationPath)
+            val configuration = Configuration(
+                password = password
+            )
 
-            if (!configurationFile.exists()) {
+            if (!Files.exists(configurationPath)) {
                 log.info("Configuration file doesn't exist")
-                return Configuration()
+                return configuration
             }
 
             log.info("Reading configuration from file")
 
-            val configuration = try {
-                objectMapper.readValue(configurationFile, Configuration::class.java).apply {
-                    this.password = password
-                }
+            try {
+                objectMapper.readerForUpdating(configuration).readValue<Configuration>(configurationPath.toFile())
             } catch (e: Exception) {
                 log.error("Deserializing configuration failed", e)
-                return Configuration()
+                return configuration
             }
 
             if (password != null) {
-                configuration.apiContext = configuration.encryptedApiContext?.decrypt(password)
+                val decryptionTime = measureTimeMillis {
+                    configuration.apiContext = configuration.encryptedApiContext?.decrypt(password)
+                }
+
+                log.debug("Decryption took ${decryptionTime}ms")
             }
 
             return configuration
@@ -58,11 +63,15 @@ data class Configuration(
         log.info("Writing configuration to file")
 
         password?.also {
-            encryptedApiContext = apiContext?.encrypt(it)
+            val encryptionTime = measureTimeMillis {
+                encryptedApiContext = apiContext?.encrypt(it)
+            }
+
+            log.debug("Encryption took ${encryptionTime}ms")
         }
 
         val json = objectMapper.writeValueAsString(this)
 
-        Files.write(Paths.get(configurationPath), json.toByteArray())
+        Files.write(configurationPath, json.toByteArray())
     }
 }

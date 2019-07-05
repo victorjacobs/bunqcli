@@ -2,19 +2,29 @@ package dev.vjcbs.bunqcli
 
 import com.bunq.sdk.model.generated.endpoint.MonetaryAccountBank
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.output.TermUi
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.prompt
 import java.time.LocalDate
 
-private const val password = "test"
-
 class BunqCli : CliktCommand() {
+    override fun run() {}
+}
 
-    private val configuration = Configuration.fromFileWithPassword(password)
+class SummaryCommand : CliktCommand(
+    name = "summary",
+    help = "Prints out monthly summary of transactions"
+) {
+
+    private val password by option().prompt(hideInput = true)
 
     private val bunqClient = BunqClient()
 
     override fun run() {
-        if (configuration.encryptedApiContext == null) {
+        val configuration = Configuration.fromFileWithPassword(password)
+
+        if (configuration.apiContext == null) {
             val bunqApiKey = TermUi.prompt(
                 text = "Bunq API key"
             ) ?: return
@@ -60,4 +70,6 @@ class BunqCli : CliktCommand() {
     }
 }
 
-fun main(args: Array<String>) = BunqCli().main(args)
+fun main(args: Array<String>) = BunqCli()
+    .subcommands(SummaryCommand())
+    .main(args)

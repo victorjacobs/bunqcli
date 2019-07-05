@@ -9,10 +9,17 @@ import java.time.format.DateTimeFormatter
 
 class BunqClient {
 
-    fun loginWithContext(context: String) =
+    private val log = logger()
+
+    fun loginWithContext(context: String) {
+        log.debug("Logging in with context")
+
         BunqContext.loadApiContext(ApiContext.fromJson(context))
+    }
 
     fun loginWithApiKey(apiKey: String): String {
+        log.debug("Logging in with api key")
+
         val context = ApiContext.create(
             ApiEnvironmentType.PRODUCTION,
             apiKey,
@@ -43,6 +50,8 @@ class BunqClient {
 
             nextId = paymentsResult.pagination.olderId
         } while (nextId != null && filteredPayments.count() == paymentsResult.value.count())
+
+        log.debug("Fetched ${result.size} payments")
 
         return result
     }

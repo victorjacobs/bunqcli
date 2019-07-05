@@ -55,6 +55,4 @@ gradle-app.setting
 
 .idea/
 
-bunq.conf
 out/
-*.json
