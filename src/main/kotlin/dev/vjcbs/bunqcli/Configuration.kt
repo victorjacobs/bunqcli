@@ -11,7 +11,7 @@ data class Configuration(
     @JsonIgnore
     private var password: String? = null,
 
-    var encryptedApiContext: AesEncryptionResult? = null,
+    var encryptedApiContext: AesEncryptedData? = null,
     @JsonIgnore
     var apiContext: String? = null,
     var bunqAccountId: Int? = null

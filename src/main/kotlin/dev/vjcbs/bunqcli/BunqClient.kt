@@ -51,7 +51,7 @@ class BunqClient {
             nextId = paymentsResult.pagination.olderId
         } while (nextId != null && filteredPayments.count() == paymentsResult.value.count())
 
-        log.debug("Fetched ${result.size} payments")
+        log.info("Fetched ${result.size} payments")
 
         return result
     }

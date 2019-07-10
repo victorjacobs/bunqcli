@@ -19,7 +19,7 @@ private const val pbkdf2Iterations = 100_000
 private const val pbkdf2Strength = 256
 private const val saltLength = 16
 
-fun String.encrypt(password: String): AesEncryptionResult? {
+fun String.encrypt(password: String): AesEncryptedData? {
     val log = logger()
 
     try {
@@ -47,14 +47,14 @@ fun String.encrypt(password: String): AesEncryptionResult? {
 
         val encryptedData = cipher.doFinal(this.toByteArray())
 
-        return AesEncryptionResult(iv, salt, encryptedData)
+        return AesEncryptedData(iv, salt, encryptedData)
     } catch (e: GeneralSecurityException) {
         log.error("Encryption failed", e)
         return null
     }
 }
 
-data class AesEncryptionResult(
+data class AesEncryptedData(
     val iv: String,
     val salt: String,
     val data: String

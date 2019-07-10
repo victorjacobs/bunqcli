@@ -55,7 +55,7 @@ class SummaryCommand : CliktCommand(
         }
 
         val summariesPerMonth = bunqClient.summariesPerMonthWhile(configuration.bunqAccountId!!) {
-            it.getCreatedDateTime().month == LocalDate.now().month
+            true
         }
 
         println()
