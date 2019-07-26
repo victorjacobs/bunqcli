@@ -6,7 +6,6 @@ import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.output.TermUi
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.prompt
-import java.time.LocalDate
 
 class BunqCli : CliktCommand() {
     override fun run() {}
@@ -62,12 +61,14 @@ class SummaryCommand : CliktCommand(
 
         summariesPerMonth.forEach {
             println("[${it.first}]")
-            println("\tIncoming:\t${it.second.incoming.roundTwoDigits()}")
-            println("\tOutgoing:\t${it.second.outgoing.roundTwoDigits()}")
-            println("\tDelta:\t\t${it.second.delta.roundTwoDigits()}")
+            println("\tIncoming:\t${formatAmount(it.second.incoming)}")
+            println("\tOutgoing:\t${formatAmount(it.second.outgoing)}")
+            println("\tDelta:\t\t${formatAmount(it.second.delta)}")
             println()
         }
     }
+
+    private fun formatAmount(amount: Double) = String.format("%8.2f", amount.roundTwoDigits())
 }
 
 fun main(args: Array<String>) = BunqCli()
