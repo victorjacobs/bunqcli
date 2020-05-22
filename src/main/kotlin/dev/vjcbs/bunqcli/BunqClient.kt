@@ -76,7 +76,6 @@ object BunqClient {
                 acc + curr
             }
         }
-
 }
 
 fun Payment.getCreatedDateTime() =

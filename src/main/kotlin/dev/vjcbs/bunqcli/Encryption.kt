@@ -1,6 +1,5 @@
 package dev.vjcbs.bunqcli
 
-import org.apache.commons.codec.binary.Base64
 import java.security.GeneralSecurityException
 import java.security.SecureRandom
 import javax.crypto.Cipher
@@ -8,6 +7,7 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
+import org.apache.commons.codec.binary.Base64
 
 private const val keyAlgorithm = "AES"
 private const val cipherAlgorithm = "AES/GCM/PKCS5Padding"
