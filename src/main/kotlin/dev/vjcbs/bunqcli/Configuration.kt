@@ -16,9 +16,7 @@ data class Configuration(
     var apiContext: String? = null,
     var bunqAccountId: Int? = null
 ) {
-
     companion object {
-
         private val configurationPath =
             Paths.get(System.getProperty("user.home"), ".bunqclirc")
 

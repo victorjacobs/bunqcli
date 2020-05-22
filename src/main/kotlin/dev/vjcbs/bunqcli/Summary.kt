@@ -7,8 +7,9 @@ data class Summary(
     val delta: Double
         get() = this.incoming + this.outgoing
 
-    operator fun plus(other: Summary) = Summary(
-        incoming = this.incoming + other.incoming,
-        outgoing = this.outgoing + other.outgoing
-    )
+    operator fun plus(other: Summary) =
+        Summary(
+            incoming = this.incoming + other.incoming,
+            outgoing = this.outgoing + other.outgoing
+        )
 }

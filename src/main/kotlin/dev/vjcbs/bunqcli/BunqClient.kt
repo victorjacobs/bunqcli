@@ -4,31 +4,34 @@ import com.bunq.sdk.context.ApiContext
 import com.bunq.sdk.context.ApiEnvironmentType
 import com.bunq.sdk.context.BunqContext
 import com.bunq.sdk.model.generated.endpoint.Payment
+import com.github.ajalt.clikt.output.TermUi
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-class BunqClient {
-
+object BunqClient {
     private val log = logger()
 
-    fun loginWithContext(context: String) {
-        log.debug("Logging in with context")
+    fun login(configuration: Configuration) {
+        if (configuration.apiContext == null) {
+            val bunqApiKey = TermUi.prompt(
+                text = "Bunq API key"
+            ) ?: throw Error("Empty API key")
 
-        BunqContext.loadApiContext(ApiContext.fromJson(context))
-    }
-
-    fun loginWithApiKey(apiKey: String): String {
-        log.debug("Logging in with api key")
-
-        val context = ApiContext.create(
-            ApiEnvironmentType.PRODUCTION,
-            apiKey,
-            "dev.vjcbs.bunqcli"
-        )
-
-        BunqContext.loadApiContext(context)
-
-        return context.toJson()
+            log.debug("Logging in with api key")
+            val context = ApiContext.create(
+                ApiEnvironmentType.PRODUCTION,
+                bunqApiKey,
+                "dev.vjcbs.bunqcli"
+            )
+            BunqContext.loadApiContext(context)
+            configuration.apiContext = context.toJson()
+            configuration.save()
+        } else {
+            configuration.apiContext?.also {
+                log.debug("Logging in with context")
+                BunqContext.loadApiContext(ApiContext.fromJson(it))
+            }
+        }
     }
 
     fun mostRecentPaymentsWhile(bunqAccountId: Int, condition: (Payment) -> Boolean): List<Payment> {
@@ -73,6 +76,7 @@ class BunqClient {
                 acc + curr
             }
         }
+
 }
 
 fun Payment.getCreatedDateTime() =
