@@ -15,7 +15,6 @@ class SummaryCommand : CliktCommand(
     name = "summary",
     help = "Prints out monthly summary of transactions"
 ) {
-
     private val password by option().prompt(hideInput = true)
 
     private val bunqClient = BunqClient()
